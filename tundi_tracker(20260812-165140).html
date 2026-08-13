@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tundi Tracker</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f5f3;color:#202020;font:14px Arial,Helvetica,sans-serif}
+header{height:64px;background:#fff;border-bottom:1px solid #ddd;padding:0 5%;display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:18px;font-weight:700}.brand span{color:#df6c2b}header small{color:#888}
+main{width:min(1240px,92%);margin:25px auto}.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:18px}
+h1{margin:0 0 4px;font-size:30px;letter-spacing:-1px}.intro{margin:0;color:#777}
+.stats{display:flex;gap:8px}.stat{background:#fff;border:1px solid #ddd;border-radius:5px;padding:8px 13px;text-align:center}.stat b{display:block;font-size:18px}.stat small{color:#888}
+.tools{background:#fff;border:1px solid #ddd;border-radius:5px;padding:10px;display:flex;gap:7px;flex-wrap:wrap}
+input,select{font:inherit;background:#fff;border:1px solid #ccc;border-radius:4px;padding:8px 10px}input{flex:1;min-width:220px}
+button{font:inherit;background:#fff;border:1px solid #ccc;border-radius:4px;padding:8px 10px;cursor:pointer}button:hover,button.active{background:#222;color:#fff;border-color:#222}
+.layout{display:grid;grid-template-columns:1fr 390px;gap:12px;margin-top:12px}.box{background:#fff;border:1px solid #ddd;border-radius:5px;overflow:hidden}
+.boxhead{height:45px;padding:0 13px;border-bottom:1px solid #ddd;display:flex;align-items:center;justify-content:space-between;font-weight:700}.boxhead span{font-weight:400;font-size:12px;color:#888}
+.map{height:620px;position:relative;background:#eef0ed;overflow:hidden}.map svg{width:100%;height:100%;display:block}
+.district{fill:#e5e7e3;stroke:#aeb2ae;stroke-width:.65;vector-effect:non-scaling-stroke;cursor:pointer;transition:.12s}
+.district:hover{fill:#d9ddd8}.district.has-project{fill:#e9e2db}.district.active{fill:#d8d9d6;stroke:#555;stroke-width:1.5}
+.dot{stroke:#fff;stroke-width:2.5;cursor:pointer;vector-effect:non-scaling-stroke;transition:r .15s,filter .15s}
+.dot:hover{r:10;filter:drop-shadow(0 0 7px rgba(0,0,0,.35))}
+.dot.selected{r:11;stroke:#202020;stroke-width:3;filter:drop-shadow(0 0 9px rgba(0,0,0,.35))}
+.pin-pulse{fill:none;stroke-width:2;opacity:.55;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{r:7;opacity:.65}70%{r:17;opacity:0}100%{r:17;opacity:0}}
+.map-label{font-size:10px;font-weight:700;fill:#303030;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.map-legend{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.94);border:1px solid #ddd;border-radius:7px;padding:9px 11px;box-shadow:0 4px 15px rgba(0,0,0,.08)}
+.legend-row{display:inline-flex;align-items:center;margin-right:10px;color:#555;font-size:10px}
+.legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px}
+.map-tools{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:4px}.map-tools button{background:#fff;width:34px;height:34px;padding:0;font-size:18px}
+.map-note{position:absolute;bottom:10px;left:10px;background:#fff;border:1px solid #ddd;border-radius:4px;padding:7px 9px;color:#777;font-size:10px}
+.list{height:620px;overflow:auto}.item{padding:13px;border-bottom:1px solid #e7e7e7;cursor:pointer}.item:hover{background:#fafafa}.item.selected{background:#f5f5f3;border-left:3px solid #df6c2b;padding-left:10px}
+.item h3{font-size:15px;margin:4px 0}.meta{font-size:10px;color:#df6c2b;font-weight:700;text-transform:uppercase;letter-spacing:.5px}.place{font-size:12px;color:#777}.status{float:right;color:#777;font-size:10px}
+.detail{display:none;margin-top:12px;background:#fff;border:1px solid #ddd;border-radius:5px;padding:18px}.detail.show{display:block}
+.detail h2{margin:4px 0 7px;font-size:22px}.detail p{color:#666;line-height:1.55;max-width:900px}.detail .meta{margin-bottom:3px}
+.detail-grid{display:flex;gap:32px;flex-wrap:wrap;padding-top:12px;border-top:1px solid #eee}.detail-grid b{display:block}.detail-grid small{color:#888}
+.maplink{display:inline-block;margin-top:10px;color:#1769aa;text-decoration:none}.maplink:hover{text-decoration:underline}
+footer{text-align:center;color:#999;font-size:11px;padding:26px}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#777;background:#eef0ed}.hidden{display:none!important}
+@media(max-width:850px){.top{display:block}.stats{margin-top:12px}.layout{grid-template-columns:1fr}.map,.list{height:480px}}
+</style>
+</head>
+<body>
+<header><div class="brand">TUNDI <span>TRACKER</span></div><small>Nepal projects</small></header>
+<main>
+<div class="top">
+<div><h1>Projects</h1><p class="intro">Explore the projects publicly listed by Tundi, by place, sector and status.</p></div>
+<div class="stats"><div class="stat"><b id="total">0</b><small>listed projects</small></div><div class="stat"><b id="ongoing">0</b><small>ongoing</small></div><div class="stat"><b id="districts">0</b><small>districts</small></div></div>
+</div>
+
+<div class="tools">
+<input id="search" placeholder="Search project, district or sector">
+<button class="active" data-type="all">All</button><button data-type="road">Road</button><button data-type="bridge">Bridge</button><button data-type="building">Building</button><button data-type="airport">Airport</button><button data-type="water">Water</button><button data-type="power">Power</button><button data-type="irrigation">Irrigation</button>
+<select id="status"><option value="all">All status</option><option>Ongoing</option><option>Under execution</option><option>Completed</option></select>
+</div>
+
+<div class="layout">
+<section class="box">
+<div class="boxhead">Nepal <span id="shown">0 shown</span></div>
+<div class="map" id="map">
+<div class="loading" id="loading">Loading Nepal map…</div>
+<svg id="svg" viewBox="0 0 900 650"></svg>
+<div class="map-tools"><button id="plus">+</button><button id="minus">−</button><button id="reset">⌂</button></div>
+<div class="map-legend">
+<span class="legend-row"><i class="legend-dot" style="background:#df6c2b"></i>Road</span>
+<span class="legend-row"><i class="legend-dot" style="background:#3478f6"></i>Bridge</span>
+<span class="legend-row"><i class="legend-dot" style="background:#8b5cf6"></i>Building</span>
+<span class="legend-row"><i class="legend-dot" style="background:#ef4444"></i>Airport</span>
+<span class="legend-row"><i class="legend-dot" style="background:#06a6a6"></i>Water</span>
+<span class="legend-row"><i class="legend-dot" style="background:#f2a900"></i>Power</span>
+<span class="legend-row"><i class="legend-dot" style="background:#3c9b5f"></i>Irrigation</span>
+</div>
+<div class="map-note">Click a marker · hover for project name</div>
+</div>
+</section>
+<section class="box"><div class="boxhead">Projects <span id="listcount"></span></div><div class="list" id="list"></div></section>
+</div>
+
+<div class="detail" id="detail">
+<div class="meta" id="dtype"></div><h2 id="dname"></h2><div class="place" id="dplace"></div><p id="ddesc"></p>
+<a class="maplink" id="maplink" target="_blank" rel="noopener">Open location in Google Maps →</a><br><a class="maplink" id="sourceLink" target="_blank" rel="noopener">View source →</a><span id="jv" style="margin-left:18px;color:#777;font-size:12px"></span>
+<div class="detail-grid"><div><b id="dstatus"></b><small>Status</small></div><div><b id="dwork"></b><small>Work type</small></div><div><b id="dvalue"></b><small>Contract value</small></div></div>
+</div>
+</main>
+<footer>Tundi Tracker · Publicly documented Tundi projects and Tundi joint ventures</footer>
+
+<script>
+const projects=[
+["Federal Parliament Building Complex, Kathmandu","Kathmandu","building","Ongoing","—","Federal Parliament building complex in Kathmandu."],
+["Airports and Air Navigation Services Organization of Nepal (AANSON)","Kathmandu","building","Ongoing","—","Building works for AANSON."],
+["Nepal Army Chandidal, Kathmandu","Kathmandu","building","Ongoing","—","Building works for Nepal Army Chandidal."],
+["Sheraton Hotel, Kathmandu","Kathmandu","building","Ongoing","—","Sheraton Hotel construction in Kathmandu."],
+["CIAA Building","Kathmandu","building","Completed","—","Commission for Investigation of Abuse of Authority building."],
+["Patan Maternity Hospital","Lalitpur","building","Completed","NRs. 207.1 million","Maternity hospital building works."],
+["Rotary Corporate Tower, Thapathali","Kathmandu","building","Completed","—","Corporate tower construction at Thapathali."],
+["St. Xavier's School","Kathmandu","building","Completed","—","School building project."],
+["Mechi Eye Hospital","Jhapa","building","Completed","—","Eye hospital building project."],
+
+["Galchi-Trishuli-Mailung Road","Nuwakot / Rasuwa","road","Ongoing","NRs. 3.66 billion","46 km road upgrade including drainage, culverts and pavement works."],
+["Guleriya Road","Bardiya","road","Ongoing","—","Road construction works in Guleriya."],
+["Pushpalal (Mid-Hill) Highway Project","Nepal","road","Ongoing","—","Road works associated with the Mid-Hill Highway."],
+["Kathmandu-Terai/Madhesh Fast Track (Expressway) Road Project","Kathmandu / Makwanpur","road","Upcoming","—","Expressway project listed by Tundi."],
+["Maitighar-Tinkune Road","Kathmandu","road","Completed","—","Urban road project connecting Maitighar and Tinkune."],
+["Modikuwa-Lunkhu Road and Armadi-Banau Road","Parbat","road","Completed","—","Two road packages in Parbat District."],
+["Nagarkot Deupur Hinguwapati Road","Kavrepalanchok","road","Completed","—","Road construction in Kavre."],
+["Construction of Railway Trackbed","Nepal","road","Completed","—","Railway trackbed construction project."],
+
+["Bidur Water Supply/Treatment Plant","Nuwakot","water","Ongoing","—","Water supply and treatment plant project at Bidur."],
+["Melamchi Water Treatment Plant","Kathmandu / Sindhupalchok","water","Ongoing","NRs. 1.26 billion","Water treatment works associated with the Melamchi system."],
+["Tikapur Storm Drainage","Kailali","water","Ongoing","—","Storm drainage infrastructure in Tikapur."],
+["Kathmandu Valley Water Supply Improvement Project","Kathmandu Valley","water","Ongoing","—","Water supply improvement works in the Kathmandu Valley."],
+["Tikapur Small Town Water Supply & Sanitation Sector Project","Kailali","water","Completed","—","Small-town water supply and sanitation project."],
+["Dharan Water Supply Sub-Project","Sunsari","water","Completed","US$ 15.79 million","Water supply infrastructure including tanks, treatment plants and pipelines."],
+["Indrapur Small Town Water Supply and Sanitation Project","Sunsari","water","Completed","—","Small-town water supply and sanitation project."],
+
+["Kali Gandaki Bridge","Nawalparasi","bridge","Ongoing","—","Design and build of an 80m prestressed concrete and steel truss arch bridge at Devghat."],
+["Rapti Khola Bridge","Dang","bridge","Completed","—","Rapti Khola bridge project."],
+["Surahi Bridge","Kapilvastu","bridge","Completed","—","Surahi bridge project."],
+["Rapti Bridge","Dang","bridge","Completed","—","Rapti River bridge project."],
+["Four Bridges Package IV — Tupche, Mastar, Jare, Fishling","Nuwakot / Dhading","bridge","Completed","—","Four bridges over the Trishuli River."],
+["Bridges of Dharan-Chatara-Gaughat-Katari-Sindhuli-Hetauda Road East","Sunsari / Udayapur / Sindhuli / Makwanpur","bridge","Completed","—","Bridge package along the eastern section of the road."],
+["Three Bridges Package II — Marin Khola, Kamala Khola, Ratu River","Sindhuli / Dhanusha / Siraha","bridge","Completed","—","Three-bridge package."],
+["Sunkoshi Bridge and Approaches at Khurkot","Ramechhap / Sindhuli","bridge","Completed","—","Sunkoshi bridge and approach road works."],
+["Karnali (Geruwa) Bridge on Hulaki Road, Kothiyaghat","Bardiya","bridge","Completed","US$ 35.27 million","1,015m prestressed concrete bridge on the Hulaki Road."],
+
+["Airport Parking — Tribhuvan International Airport","Kathmandu","airport","Ongoing","—","Airport parking infrastructure at Tribhuvan International Airport."],
+
+["Sanjen Hydro Powerhouse","Rasuwa","power","Completed","NRs. 1.55 billion","Hydropower civil works including headworks, tunnel, powerhouse and related structures."],
+
+["Mahakali Irrigation Project","Kanchanpur","irrigation","Ongoing","—","Irrigation infrastructure project in the Mahakali area."],
+["Rani Jamara Kulariya Project","Kailali","irrigation","Completed","NRs. 1.73 billion","Irrigation canal systems and associated infrastructure."],
+["Repair of Damaged Portion & Bank Raising of Shivnagar","Bardiya","irrigation","Completed","—","Repair and river-bank protection works."],
+["Construction of Embankment and Protection Work","Bardiya","irrigation","Completed","—","Embankment and protection infrastructure."],
+["Construction of B3 Branch Canal upto 4.075 Km","Bardiya","irrigation","Completed","—","Branch canal construction."],
+["Construction of Main Canal Lining & B2/B2S4 Secondary Canal System","Bardiya","irrigation","Completed","—","Canal lining and secondary canal system works."],
+["Bagmati Irrigation Project 2046 B.S.","Sarlahi / Rautahat","irrigation","Completed","—","Irrigation infrastructure project."],
+["Babai Irrigation Project 2050 B.S.","Bardiya","irrigation","Completed","—","Irrigation infrastructure project."],
+
+["NEA – AIIB DSUEP (Packages W1, W4, W5)","Nepal","power","Ongoing","—","Transmission and distribution infrastructure project."],
+
+["Federal / Public Building Works — additional portfolio","Nepal","building","Completed","—","Additional public building works represented in Tundi's published portfolio."],
+["Water Supply & Treatment Works — additional portfolio","Nepal","water","Completed","—","Additional water supply and treatment works represented in Tundi's published portfolio."],
+["Road & Bridge Works — additional portfolio","Nepal","road","Completed","—","Additional road and bridge works represented in Tundi's published portfolio."]
+,
+["Kakarbhitta–Laukahi Highway — Package 2","Morang","road","Ongoing","NPR 9.138 billion","40 km section of the East-West Highway, awarded to CRFG–Tundi JV.","https://www.adb.org/projects/52097-003/main","CRFG–Tundi JV"],
+["Kakarbhitta–Laukahi Highway — Package 3","Morang / Sunsari","road","Ongoing","NPR 4.074 billion","10.76 km section awarded to COVEC–CREGC–Tundi JV.","https://www.adb.org/projects/52097-003/main","COVEC–CREGC–Tundi JV"],
+["Kakarbhitta–Laukahi Highway — Package 4","Sunsari","road","Ongoing","US$ 44.85 million","East-West Highway section awarded to COVEC–CREGC–Tundi JV.","https://www.adb.org/projects/52097-003/main","COVEC–CREGC–Tundi JV"],
+["Kakarbhitta–Laukahi Highway — Package 5","Sunsari","road","Ongoing","US$ 42.40 million","East-West Highway section awarded to COVEC–CREGC–Tundi JV.","https://www.adb.org/projects/52097-003/main","COVEC–CREGC–Tundi JV"],
+["Ninda–Biring–Kankai Bridges","Jhapa","bridge","Ongoing","NPR 5.979 billion","Three major bridges along the East-West Highway under COVEC–CREGC–Tundi JV.","https://dor.gov.np/home/notice/force/notice-of-intention-for-award-of-contracts","COVEC–CREGC–Tundi JV"],
+["Ratuwa–Bakra–Lohendra Bridges","Morang / Jhapa","bridge","Ongoing","NPR 5.653 billion","Three major bridges along the East-West Highway under COVEC–CREGC–Tundi JV.","https://dor.gov.np/home/notice/force/notice-of-intention-for-award-of-contracts","COVEC–CREGC–Tundi JV"],
+["Tribhuvan International Airport Runway & Taxiway Overlay","Kathmandu","airport","Completed","NRs. 240 million","Runway overlay works carried out by China Railway Engineering Corp–Tundi JV.","https://myrepublica.nagariknetwork.com/news/much-ado-about-nothing","CREC–Tundi JV"],
+["Sundarijal Water Treatment Plant — WTP-02","Kathmandu","water","Completed","NPR 1.375 billion","85 MLD treatment-plant expansion from 85 MLD to 170 MLD under Tundi–Pratibha JV.","https://www.melamchiwater.gov.np/components/infrastructure-development/water-treatment-plant/","Tundi–Pratibha Industries JV"],
+["Sanjen Hydropower — Civil Works Lot 2","Rasuwa","power","Completed","—","Civil works package awarded to SEW–Tundi JV.","https://sjcl.com.np/contractor/","SEW–Tundi JV"],
+["Kathmandu–Terai/Madhesh Fast Track — Contract Package 07","Makwanpur","road","Ongoing","—","Fast Track package associated with Xingrun–Ashish–Tundi JV; external project records identify the JV as the client for geotechnical testing.","https://nsengineering.com.np/projects/","Xingrun–Ashish–Tundi JV"],
+["Adalat Chautari–Tityang–Saalbot–Daha–Bhakunde–Rayadanda–Damek–Bareng Road","Baglung","road","Ongoing","US$ 2.395 million","15 km road upgradation, construction and performance-based maintenance under Tundi–Bidari JV.","https://www.adb.org/projects/48218-011/main","Tundi–Bidari JV"],
+["Wamitaksar–Aapchaur–Shantipur Road","Gulmi","road","Ongoing","—","Road upgradation, construction and performance-based maintenance under Tundi–Bidari JV.","https://infra.taiyo.ai/all_public/details/tenders/contract-agreement-with-ms-tundi-bidari-jv-for-upgradation-construction-and-performance-based-maintenance-works-of-wamitaksar-indregauda-aapchaur-shantipur-road-ocb-20-in-gulmi-district-of-lumbini-province?id=iuBYHpIBJDRQwexsvsoR&index=dpdata2_tenders_asian_dev_bank-v2","Tundi–Bidari JV"],
+["Nepal Distribution System Upgrade — Package W1","Dang","power","Ongoing","USD 7.787 million + NPR 467.304 million","33/11 kV substations and 33 kV, 11 kV, 400 V lines and distribution transformers under JK Electric–Prabha–Tundi JV.","https://nea.org.np/en/pages/old-award-of-contract","JK Electric–Prabha–Tundi JV"],
+["Nepal Distribution System Upgrade — Package W5","Nepal","power","Ongoing","USD 15.322 million + NPR 1.004 billion","Substations, lines and distribution-system works under CEPL–SPR–Tundi JV.","https://nea.org.np/en/pages/old-award-of-contract","CEPL–SPR–Tundi JV"],
+["Bhalubhang–Pyuthan Road Improvement","Pyuthan","road","Completed","—","Road improvement project associated with Rishi–Tundi Joint Venture.","https://www.nepca.org.np/wp-content/uploads/2021/04/annual-report-of-NEPCA-077-AGM-77-12-17.pdf","Rishi–Tundi JV"]
+
+,
+["Shital Niwas","Kathmandu","building","Completed","—","Construction of the official residence project listed in Tundi's historical portfolio.","https://tundigroup.com/shital-niwas.html","Tundi Construction"],
+["Construction of Physics Department Block at Tribhuvan University","Kirtipur, Kathmandu","building","Completed","—","Physics Department block construction at Tribhuvan University.","https://tundigroup.com/physics-department-block-tu-kirtipur.html","Tundi Construction"],
+["USAID Health Center","Gorkha / Lamjung","building","Completed","—","Health-center construction works listed in Tundi's historical portfolio.","https://tundigroup.com/usaid-health-center-gorkha-lamjung.html","Tundi Construction"],
+["School Teachers Record Office Building","Kathmandu","building","Completed","—","School Teachers Record Office building project.","https://tundigroup.com/school-teachers-record-office-building.html","Tundi Construction"],
+["Narayani Cement Udyog","Nawalparasi","building","Completed","—","Industrial building works listed in Tundi's historical portfolio.","https://tundigroup.com/narayani-cement-udyog.html","Tundi Construction"],
+["Institute of Chartered Accountants of Nepal (ICAN)","Babarmahal, Kathmandu","building","Completed","—","Office building at Satdobato; Tundi 40%, Prera 30%, Pratistha 30%.","https://tundigroup.com/the-institute-of-chartered-accountants-of-nepal-ican.html","Tundi–Prera–Pratistha JV"],
+["Kathmandu University — Staff Quarter & School of Medical Science Complex","Dhulikhel, Kavre","building","Completed","—","Staff Quarter Wing-D and Kathmandu University School of Medical Science complex including hostel.","https://tundigroup.com/kathmandu-university.html","Tundi Construction"],
+["Aryabhanjyang–Rampur Road","Rampur, Palpa","road","Completed","—","14 km road project; Tundi 50%, Ashish 50%.","https://tundigroup.com/aryabhanjyangrampur-road.html","Tundi–Ashish JV"],
+["Mirchaiya–Katari–Sunkoshi Road","Siraha / Udayapur / Sindhuli","road","Completed","—","Upgrading of Katari–Gahubari section, km 27+000 to km 52+000.","https://tundigroup.com/mirchaiyakatarisunkoshi-road.html","Tundi Construction"],
+["Chameliya–Darchula Road (RMDP)","Darchula","road","Completed","—","New road construction; Tundi 85%, Shiva Shakti 15%.","https://tundigroup.com/new-road-construction-of-chameliyadarchula-road-rmdp.html","Tundi–Shiva Shakti JV"],
+["East-West Highway — Belbari to Chauharwa","Sunsari / Siraha","road","Completed","—","Strengthening and asphalt-concrete overlay works; Tundi 100%.","https://tundigroup.com/east-west-highway-project-belbari-to-chauharwa-road.html","Tundi Construction"],
+["Strengthening of Runway, Taxiway, Apron & Associated Works — Chandragadhi Airport","Jhapa","airport","Completed","—","Airport pavement and associated works at Chandragadhi.","https://tundigroup.com/strengthening-of-runway-taxiway-apron-and-other-associated-works-at-chandragadhi-airport.html","Tundi Construction"],
+["Dhangadhi Airport","Kailali","airport","Completed","—","Airport construction works listed in Tundi's project portfolio.","https://tundigroup.com/dhangadhi-airport.html","Tundi Construction"],
+["Runway & Taxiway Overlay — Tribhuvan International Airport","Kathmandu","airport","Completed","—","Runway and taxiway overlay; CREC 50%, Tundi 50%.","https://tundigroup.com/runway-and-taxiway-overlay-work-of-tribhuvan-international-airport.html","CREC–Tundi JV"],
+["Water Supply & Sanitation Component of Ratnanagar","Ratnanagar, Chitwan","water","Completed","—","109.72 km pipeline, service buildings, two 450 m³ OHTs, deep tube wells and pumping works; Lama 34%, Santoshi 33%, Tundi 33%.","https://tundigroup.com/water-supply-and-sanitation-component-of-ratnanagar.html","Lama–Santoshi–Tundi JV"],
+["KUKL Distribution Network Improvement Package DNI 7","Kathmandu Valley","water","Completed","—","KUKL distribution network improvement package; 75.284 km pipeline was recorded under the contractor in KUKL's annual report.","https://kukl.org.np/storage/download/3/file/1702-KUKL_Annual_Report_2079.pdf.pdf","Tundi Construction"],
+["Sundarijal WTP Expansion — WTP-02","Sundarijal, Kathmandu","water","Completed","NPR 1.375 billion","85 MLD expansion of Sundarijal WTP from 85 MLD to 170 MLD; Tundi–Pratibha Industries JV.","https://www.melamchiwater.gov.np/components/infrastructure-development/water-treatment-plant/","Tundi–Pratibha Industries JV"],
+["Kali Gandaki Bridge, Devghat","Nawalparasi","bridge","Ongoing","—","80 m design-and-build bridge with prestressed concrete T-girder and steel truss arch.","https://tundigroup.com/kali-gandaki-bridge.html","Tundi Construction"],
+["Sunkoshi Bridge & Approaches at Khurkot","Ramechhap / Sindhuli","bridge","Completed","—","100.90 m steel truss bridge with RCC decking and approaches; ANK 40%, YP 30%, Tundi 30%.","https://tundigroup.com/sunkoshi-bridge-and-approaches-at-khurkotramechhap.html","ANK–YP–Tundi JV"],
+["Karnali (Geruwa) Bridge, Kothiyaghat","Bardiya","bridge","Completed","—","Design-and-build bridge and 2.015 km approach/river-training works; ANK 40%, Lumbini 30%, Tundi 30%.","https://tundigroup.com/karnali-geruwa-bridge-on-hulaki-road-kothiyghat.html","ANK–Lumbini–Tundi JV"],
+["Nakhu Bridge","Lalitpur","bridge","Completed","—","RCC bridge project listed in Tundi's historical bridge portfolio.","https://tundigroup.com/kali-gandaki-bridge.html","Tundi Construction"],
+["RCC Bridge over Bagmati River (Sankata)","Kathmandu","bridge","Completed","—","RCC bridge over the Bagmati River at Sankata.","https://tundigroup.com/kali-gandaki-bridge.html","Tundi Construction"],
+["RCC T-Beam Bridge over Aurahi River","Terai, Nepal","bridge","Completed","—","RCC T-beam bridge over the Aurahi River.","https://tundigroup.com/kali-gandaki-bridge.html","Tundi Construction"],
+["Hugdi Khola Bridge","Nepal","bridge","Completed","—","Bridge project listed in Tundi's historical bridge portfolio.","https://tundigroup.com/kali-gandaki-bridge.html","Tundi Construction"],
+["Rotary Plaza Building — Upgradation","Thapathali, Kathmandu","building","Ongoing","—","Upgradation of the existing Rotary Plaza building. The existing structure had been completed up to the eighth floor; the proposal extends the structure from the ninth to the eleventh floors.","https://giwmscdnone.gov.np/media/pdf_upload/Merged%20EIA%20notice_6j2wwu7.pdf","Tundi Construction","Upgradation / expansion"],
+["Kakarbhitta–Laukahi East-West Highway — Lot 2","Morang / Sunsari","road","Ongoing","NPR 9.138 billion","Upgrading of Ch. 45+000–85+000 of the Kakarbhitta–Laukahi section.","https://www.adb.org/projects/52097-003/main","CRFG–Tundi JV","Upgrading"],
+["Kakarbhitta–Laukahi East-West Highway — Lot 3","Sunsari","road","Ongoing","NPR 4.074 billion","Upgrading of Ch. 85+000–95+760 of the Kakarbhitta–Laukahi section.","https://www.adb.org/projects/52097-003/main","COVEC–CREGC–Tundi JV","Upgrading"],
+["Kakarbhitta–Laukahi East-West Highway — Lot 4","Sunsari","road","Ongoing","US$ 44.85 million","East-West Highway upgrading package awarded to COVEC–CREGC–Tundi JV.","https://www.adb.org/projects/52097-003/main","COVEC–CREGC–Tundi JV","Upgrading"],
+["Kakarbhitta–Laukahi East-West Highway — Lot 5","Sunsari","road","Ongoing","US$ 42.40 million","East-West Highway upgrading package awarded to COVEC–CREGC–Tundi JV.","https://www.adb.org/projects/52097-003/main","COVEC–CREGC–Tundi JV","Upgrading"],
+["Ninda–Biring–Kankai Major Bridges","Jhapa","bridge","Ongoing","NPR 5.979 billion","Construction of three major bridges along the East-West Highway.","https://dor.gov.np/home/notice/force/notice-of-intention-for-award-of-contracts","COVEC–CREGC–Tundi JV","New construction"],
+["Ratuwa–Bakra–Lohendra Major Bridges","Jhapa / Morang","bridge","Ongoing","NPR 5.653 billion","Construction of three major bridges along the East-West Highway.","https://dor.gov.np/home/notice/force/notice-of-intention-for-award-of-contracts","COVEC–CREGC–Tundi JV","New construction"],
+["KUKL Distribution Network Improvement — DNI 7","Kathmandu Valley","water","Completed","—","75.284 km water-distribution pipeline package recorded by KUKL under Tundi Construction.","https://kukl.org.np/storage/download/3/file/1702-KUKL_Annual_Report_2079.pdf.pdf","Tundi Construction","Network improvement"],
+["Sundarijal Water Treatment Plant — WTP-02","Sundarijal, Kathmandu","water","Completed","NPR 1.375 billion","Additional 85 MLD treatment plant expanding Sundarijal capacity from 85 MLD to 170 MLD.","https://www.melamchiwater.gov.np/projects-team/contractors/water-treatment-plant-wtp-contractor/","Tundi–Pratibha Industries JV","Capacity expansion"],
+["Narayani Iconic / Signature Bridge","Narayanghat–Gaindakot, Chitwan / Nawalparasi","bridge","Ongoing","Approx. NPR 1.68 billion","420 m iconic bridge with two towers and cable system; design-and-build contract signed with Tundi Construction in 2023.","https://kathmandupost.com/national/2026/06/12/three-years-on-narayani-iconic-bridge-project-yet-to-take-shape","Tundi Construction","New construction / design-build"],
+["Power Distribution System Upgrade & Expansion — W1/W4/W5","Surkhet / Dang / West Rukum / Jajarkot / Kalikot / Banke / Salyan","power","Ongoing","—","Distribution-system upgrade and expansion project covering substations, lines and distribution infrastructure.","https://www.linkedin.com/posts/tundigroup_vacancy-announcement-tundi-construction-activity-7280501217879859200-b_Gb","Tundi-led JV packages","Upgrade / expansion"],
+["Tribhuvan International Airport — Runway Extension & Associated Works","Kathmandu","airport","Completed","—","Runway extension and associated airport works under Kalika–Tundi JV.","https://people.bayt.com/dinesh-poudel/","Kalika–Tundi JV","New construction / extension"],
+["Tribhuvan International Airport — Runway & Taxiway Overlay","Kathmandu","airport","Completed","—","Runway and taxiway overlay works under CREC–Tundi JV.","https://tundigroup.com/runway-and-taxiway-overlay-work-of-tribhuvan-international-airport.html","CREC–Tundi JV","Overlay / rehabilitation"],
+["Chameliya–Darchula Road (RMDP)","Darchula","road","Completed","—","New road construction including excavation, embankment, gabion, masonry and bio-engineering works.","https://tundigroup.com/new-road-construction-of-chameliyadarchula-road-rmdp.html","Tundi–Shiva Shakti JV","New construction"],
+["Aryabhanjyang–Rampur Road","Palpa","road","Completed","—","14 km road project under Tundi–Ashish JV.","https://tundigroup.com/aryabhanjyangrampur-road.html","Tundi–Ashish JV","New construction"],
+["East-West Highway — Belbari to Chauharwa","Morang / Sunsari / Siraha","road","Completed","—","Highway strengthening and asphalt-concrete overlay works.","https://tundigroup.com/east-west-highway-project-belbari-to-chauharwa-road.html","Tundi Construction","Strengthening / overlay"],
+["Chandragadhi Airport — Runway, Taxiway & Apron","Jhapa","airport","Completed","—","Strengthening and associated airport pavement works.","https://tundigroup.com/strengthening-of-runway-taxiway-apron-and-other-associated-works-at-chandragadhi-airport.html","Tundi Construction","Strengthening / rehabilitation"],
+["Ratnanagar Water Supply & Sanitation Component","Ratnanagar, Chitwan","water","Completed","—","Water-supply and sanitation works including pipelines, overhead tanks, tube wells and pumping facilities.","https://tundigroup.com/water-supply-and-sanitation-component-of-ratnanagar.html","Lama–Santoshi–Tundi JV","New construction / network"],
+["ICAN Building, Satdobato","Lalitpur","building","Completed","—","Office building project at Satdobato under a Tundi–Prera–Pratistha joint venture.","https://tundigroup.com/the-institute-of-chartered-accountants-of-nepal-ican.html","Tundi–Prera–Pratistha JV","New construction"],
+["Kathmandu University Staff Quarter & School of Medical Sciences","Dhulikhel, Kavre","building","Completed","—","Staff-quarter and School of Medical Sciences complex including hostel works.","https://tundigroup.com/kathmandu-university.html","Tundi Construction","New construction"],
+["Physics Department Block — Tribhuvan University","Kirtipur, Kathmandu","building","Completed","—","Construction of the Physics Department block at Tribhuvan University.","https://tundigroup.com/physics-department-block-tu-kirtipur.html","Tundi Construction","New construction"],
+["Sheraton Kathmandu Hotel","Kesharmahal, Kathmandu","building","Completed","—","Hotel building construction works.","https://tundigroup.com/sheraton-hotel.html","Tundi Construction","New construction"]
+];
+let filter='all', selected=-1, zoom=1, panX=0, panY=0, geo=null;
+const $=id=>document.getElementById(id);
+const colors={road:'#df6c2b',bridge:'#3478f6',building:'#8b5cf6',airport:'#ef4444',water:'#06a6a6',power:'#f2a900',irrigation:'#3c9b5f'};
+function visible(p){const q=$('search').value.toLowerCase().trim(),st=$('status').value;return(filter==='all'||p[2]===filter)&&(st==='all'||p[3].includes(st))&&(!q||(p[0]+' '+p[1]+' '+p[2]+' '+(p[7]||'')).toLowerCase().includes(q))}
+function maps(p){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p[1])}
+function projectPoint(name){const pts={Kathmandu:[85.324,27.717],Lalitpur:[85.324,27.659],Chitwan:[84.354,27.529],Bardiya:[81.333,28.30],Morang:[87.467,26.667],Jhapa:[88.083,26.65],Sunsari:[87.15,26.633],Udayapur:[86.70,26.90],Makwanpur:[85.00,27.40],Nuwakot:[85.17,27.90],Rasuwa:[85.35,28.15],Sindhupalchok:[85.70,27.95],Pyuthan:[82.85,28.10],Rolpa:[82.65,28.30],Kailali:[80.60,28.70],Dang:[82.30,28.05],Surkhet:[81.62,28.60],Jajarkot:[82.20,28.70],Kalikot:[81.65,29.15],Darchula:[80.55,29.85],Palpa:[83.55,27.85],Gulmi:[83.25,28.10],Baglung:[83.59,28.27],Kapilvastu:[83.05,27.55],Parbat:[83.60,28.22],Kavrepalanchok:[85.55,27.55],Sarlahi:[85.55,27.05],Rautahat:[85.30,27.10],Siraha:[86.20,26.65],Dhanusha:[85.95,26.85],Ramechhap:[86.08,27.33],Nawalparasi:[83.75,27.53],Kanchanpur:[80.35,28.85],Gorkha:[84.63,28.0],Lamjung:[84.38,28.28]};return pts[name]||[84.1,28.3]}
+function renderList(){const arr=projects.map((p,i)=>[p,i]).filter(x=>visible(x[0]));$('shown').textContent=arr.length+' shown';$('listcount').textContent=arr.length;$('list').innerHTML='';arr.forEach(([p,i])=>{const d=document.createElement('div');d.className='item'+(selected===i?' selected':'');d.innerHTML='<span class="status">'+p[3]+'</span><div class="meta">'+p[2]+'</div><h3>'+p[0]+'</h3><div class="place">'+p[1]+'</div>';d.onclick=()=>select(i);$('list').appendChild(d)})}
+function select(i){selected=i;const p=projects[i];$('detail').classList.add('show');$('dtype').textContent=p[2];$('dname').textContent=p[0];$('dplace').textContent=p[1];$('ddesc').textContent=p[5];$('dstatus').textContent=p[3];$('dvalue').textContent=p[4];$('dwork').textContent=p[8]||'New construction';$('maplink').href=maps(p);$('sourceLink').href=p[6]||'https://tundigroup.com/page/projects.html';$('jv').textContent=p[7]?('JV: '+p[7]):'';render()}
+function render(){renderList();renderMap();$('total').textContent=projects.length;$('ongoing').textContent=projects.filter(p=>p[3].includes('Ongoing')||p[3].includes('execution')).length;$('districts').textContent=new Set(projects.flatMap(p=>p[1].split('/').map(x=>x.trim().split(',')[0]))).size}
+function renderMap(){if(!geo)return;const svg=$('svg');svg.innerHTML='';const all=[];function collect(g){if(g.type==='Polygon')g.coordinates.forEach(r=>r.forEach(x=>all.push(x)));if(g.type==='MultiPolygon')g.coordinates.forEach(a=>a.forEach(r=>r.forEach(x=>all.push(x))))}geo.features.forEach(f=>collect(f.geometry));if(!all.length)return;let minX=Math.min(...all.map(x=>x[0])),maxX=Math.max(...all.map(x=>x[0])),minY=Math.min(...all.map(x=>x[1])),maxY=Math.max(...all.map(x=>x[1]));const W=900,H=650,pad=35,scale=Math.min((W-pad*2)/(maxX-minX),(H-pad*2)/(maxY-minY))*zoom;const tx=x=>pad+(x-minX)*scale+panX,ty=y=>H-pad-(y-minY)*scale+panY;geo.features.forEach(f=>{const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;polys.forEach(poly=>poly.forEach(ring=>{const el=document.createElementNS('http://www.w3.org/2000/svg','polygon');el.setAttribute('points',ring.map(pt=>tx(pt[0])+','+ty(pt[1])).join(' '));el.setAttribute('class','district');const vals=f.properties?Object.values(f.properties):[];const name=String(vals.find(v=>typeof v==='string')||'District');el.title=name;el.onclick=()=>{$('search').value=name;selected=-1;render()};svg.appendChild(el)}))});projects.filter(visible).forEach(p=>{const i=projects.indexOf(p),d=p[1].split('/')[0].split(',')[0].trim(),pt=projectPoint(d),x=tx(pt[0]),y=ty(pt[1]),c=colors[p[2]]||'#df6c2b';const halo=document.createElementNS('http://www.w3.org/2000/svg','circle');halo.setAttribute('cx',x);halo.setAttribute('cy',y);halo.setAttribute('r','7');halo.setAttribute('class','pin-pulse');halo.setAttribute('stroke',c);svg.appendChild(halo);const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',x);dot.setAttribute('cy',y);dot.setAttribute('r',selected===i?11:7);dot.setAttribute('fill',c);dot.setAttribute('class','dot'+(selected===i?' selected':''));dot.title=p[0];dot.onclick=e=>{e.stopPropagation();select(i)};svg.appendChild(dot);const label=document.createElementNS('http://www.w3.org/2000/svg','text');label.setAttribute('x',x+10);label.setAttribute('y',y-9);label.setAttribute('class','map-label');label.textContent=p[0].length>25?p[0].slice(0,24)+'…':p[0];label.onclick=e=>{e.stopPropagation();select(i)};svg.appendChild(label)})}
+async function loadMap(){try{const r=await fetch('https://raw.githubusercontent.com/Acesmndr/nepal-geojson/master/generated-geojson/nepal-with-districts-acesmndr.geojson');if(!r.ok)throw Error('map');geo=await r.json();$('loading').classList.add('hidden');render()}catch(e){$('loading').innerHTML='Nepal map could not be loaded.<br><small>Check your internet connection and reload.</small>'}}
+document.querySelectorAll('button[data-type]').forEach(b=>b.onclick=()=>{document.querySelectorAll('button[data-type]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.type;selected=-1;render()});$('search').oninput=()=>{selected=-1;render()};$('status').onchange=()=>{selected=-1;render()};$('plus').onclick=()=>{zoom=Math.min(2.5,zoom+.2);renderMap()};$('minus').onclick=()=>{zoom=Math.max(.7,zoom-.2);renderMap()};$('reset').onclick=()=>{zoom=1;panX=0;panY=0;renderMap()};renderList();loadMap();
+</script>
+</body>
+</html>
